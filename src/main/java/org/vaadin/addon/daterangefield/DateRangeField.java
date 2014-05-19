@@ -5,6 +5,7 @@ import com.vaadin.data.Validator;
 import com.vaadin.data.fieldgroup.DefaultFieldGroupFieldFactory;
 import com.vaadin.data.fieldgroup.FieldGroup;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.data.validator.IntegerRangeValidator;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Component;
@@ -45,6 +46,7 @@ public class DateRangeField extends CustomField<DateRange> {
 
     private final Property<Date> fromProperty;
     private final Property<Date> toProperty;
+    private final Property<Integer> yearProperty;
 
     private final DateStepper fromField;
     private final DateStepper toField;
@@ -55,22 +57,18 @@ public class DateRangeField extends CustomField<DateRange> {
     private IntegerRangeValidator minYearValidator, maxYearValidator;
     private BeforeValidator maxYearFromDateValidator, maxYearToDateValidator;
     private AfterValidator minYearFromDateValidator, minYearToDateValidator;
-    private int initialYear;
 
     public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty) {
-        this(fromProperty, toProperty, true, null, true);
+        this(fromProperty, toProperty, true, (Integer) null, true);
     }
 
     public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty,
-                          boolean forceRangeToBeWithinACalendarYear, Integer whichYear, boolean allowUserToChangeYear) {
+                          boolean forceRangeToBeWithinACalendarYear, Property<Integer> yearProperty,
+                          boolean allowUserToChangeYear) {
         this.fromProperty = fromProperty;
         this.toProperty = toProperty;
+        this.yearProperty = yearProperty;
         this.withinYear = forceRangeToBeWithinACalendarYear;
-        if (null == whichYear) {
-            this.initialYear = DateUtil.currentYear();
-        } else {
-            this.initialYear = whichYear;
-        }
         this.allowUserToChangeYear = allowUserToChangeYear;
 
         DateRange dr = new DateRange(fromProperty.getValue(), toProperty.getValue());
@@ -82,12 +80,22 @@ public class DateRangeField extends CustomField<DateRange> {
         this.toField = (DateStepper) fieldGroup.buildAndBind("To", "to");
         // no need to add a corresponding validator to the toField.  If start date is after the end
         // date, then the end date is before the start date.
-        fromField.addValidator(new BeforeValidator("Start date cannot be after the end date", toField, true));
+        this.fromField.addValidator(new BeforeValidator("Start date cannot be after the end date", toField, true));
         this.yearField = new IntStepper("Year");
-        fromField.addValidator(new InYearValidator("From date not in the specified year", yearField));
-        toField.addValidator(new InYearValidator("To date not in the specified year", yearField));
+        this.yearField.setPropertyDataSource(yearProperty);
+        if (null == yearProperty.getValue()) {
+            this.yearField.setValue(DateUtil.currentYear());
+        }
+        this.fromField.addValidator(new InYearValidator("From date not in the specified year", yearField, this));
+        this.toField.addValidator(new InYearValidator("To date not in the specified year", yearField, this));
         setAllowUserToChangeYear(allowUserToChangeYear);
         setForceRangeToBeWithinACalendarYear(forceRangeToBeWithinACalendarYear);
+    }
+
+    public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty,
+                          boolean forceRangeToBeWithinACalendarYear, Integer whichYear, boolean allowUserToChangeYear) {
+        this(fromProperty, toProperty, forceRangeToBeWithinACalendarYear, new ObjectProperty<Integer>(whichYear,
+                Integer.class), allowUserToChangeYear);
     }
 
     public void setAllowUserToChangeYear(final boolean b) {
@@ -95,11 +103,14 @@ public class DateRangeField extends CustomField<DateRange> {
         this.yearField.setEnabled(b);
     }
 
+    public boolean getForceRangeToBeWithinACalendarYear() {
+        return this.withinYear;
+    }
+
     public void setForceRangeToBeWithinACalendarYear(final boolean b) {
         this.withinYear = b;
         this.yearField.setVisible(b);
         if (b) {
-            this.yearField.setValue(initialYear);
             if (this.minYear > 0) {
                 setMinYear(this.minYear);
             }
@@ -108,7 +119,6 @@ public class DateRangeField extends CustomField<DateRange> {
             }
         } else {
             this.yearField.removeAllValidators();
-            this.yearField.setValue(-1);
         }
     }
 
@@ -116,7 +126,7 @@ public class DateRangeField extends CustomField<DateRange> {
         if (year < 1) {
             return;
         }
-        this.initialYear = year;
+        this.yearField.setValue(year);
         setForceRangeToBeWithinACalendarYear(this.withinYear);
     }
 
@@ -152,9 +162,6 @@ public class DateRangeField extends CustomField<DateRange> {
         yearField.addValueChangeListener(new Property.ValueChangeListener() {
             @Override
             public void valueChange(Property.ValueChangeEvent event) {
-                if (-1 == yearField.getValue()) {
-                    return;
-                }
                 yearChange(true);
             }
         });
@@ -223,7 +230,6 @@ public class DateRangeField extends CustomField<DateRange> {
             this.yearField.setLocale(locale);
         }
     }
-
 
     public void setFromDateCaption(String caption) {
         this.fromField.setCaption(caption);
@@ -344,6 +350,7 @@ public class DateRangeField extends CustomField<DateRange> {
     public void setConverter(Class<?> datamodelType) {
         throw new UnsupportedOperationException("The display is hardwired in.");
     }
+
     @Override
     protected void setInternalValue(DateRange newValue) {
         throw new UnsupportedOperationException("The 'internal value' is in the fields.");

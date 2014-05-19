@@ -31,7 +31,7 @@ public class DateRangeFieldUI extends UI {
         // only using DateField because it's an easy way to create a date Property
         DateField df1 = new DateField(null, DateUtil.firstDayOfYear(DateUtil.currentYear()));
         DateField df2 = new DateField(null, DateUtil.lastDayOfYear(DateUtil.currentYear()));
-        drf = new DateRangeField(df1, df2, true, null, false);
+        drf = new DateRangeField(df1, df2, true, (Integer) null, false);
         Button submit = new Button("Submit");
         submit.addClickListener(new Button.ClickListener() {
             @Override
