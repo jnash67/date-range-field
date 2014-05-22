@@ -57,6 +57,7 @@ public class DateRangeField extends CustomField<DateRange> {
     private IntegerRangeValidator minYearValidator, maxYearValidator;
     private BeforeValidator maxYearFromDateValidator, maxYearToDateValidator;
     private AfterValidator minYearFromDateValidator, minYearToDateValidator;
+    private InYearValidator fromDateInYearValidator, toDateInYearValidator;
 
     public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty) {
         this(fromProperty, toProperty, true, (Integer) null, true);
@@ -72,24 +73,33 @@ public class DateRangeField extends CustomField<DateRange> {
         this.allowUserToChangeYear = allowUserToChangeYear;
 
         DateRange dr = new DateRange(fromProperty.getValue(), toProperty.getValue());
+        setValue(dr);
         BeanItem<DateRange> dateRangeBean = new BeanItem<DateRange>(dr);
 
         FieldGroup fieldGroup = new FieldGroup(dateRangeBean);
         fieldGroup.setFieldFactory(new DateRangeFieldFactory());
         this.fromField = (DateStepper) fieldGroup.buildAndBind("From", "from");
         this.toField = (DateStepper) fieldGroup.buildAndBind("To", "to");
-        // no need to add a corresponding validator to the toField.  If start date is after the end
-        // date, then the end date is before the start date.
         this.fromField.addValidator(new BeforeValidator("Start date cannot be after the end date", toField, true));
+        this.toField.addValidator(new AfterValidator("End date cannot be before the start date", fromField, true));
         this.yearField = new IntStepper("Year");
         this.yearField.setPropertyDataSource(yearProperty);
         if (null == yearProperty.getValue()) {
             this.yearField.setValue(DateUtil.currentYear());
         }
-        this.fromField.addValidator(new InYearValidator("From date not in the specified year", yearField, this));
-        this.toField.addValidator(new InYearValidator("To date not in the specified year", yearField, this));
         setAllowUserToChangeYear(allowUserToChangeYear);
         setForceRangeToBeWithinACalendarYear(forceRangeToBeWithinACalendarYear);
+        ValueChangeListener listener = new ValueChangeListener() {
+            @Override
+            public void valueChange(Property.ValueChangeEvent event) {
+                DateRange newValue = new DateRange(fromField.getValue(), toField.getValue());
+                setValue(newValue);
+            }
+        };
+        fromField.addValueChangeListener(listener);
+        toField.addValueChangeListener(listener);
+        // show validation errors on the individual fields, not on the entire field
+        setValidationVisible(false);
     }
 
     public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty,
@@ -111,14 +121,24 @@ public class DateRangeField extends CustomField<DateRange> {
         this.withinYear = b;
         this.yearField.setVisible(b);
         if (b) {
-            if (this.minYear > 0) {
-                setMinYear(this.minYear);
+            if (null == fromDateInYearValidator) {
+                fromDateInYearValidator = new InYearValidator("From date not in the specified year", yearField, this);
             }
-            if (this.maxYear > 0) {
-                setMaxYear(this.minYear);
+            this.fromField.addValidator(fromDateInYearValidator);
+            if (null == toDateInYearValidator) {
+                toDateInYearValidator = new InYearValidator("To date not in the specified year", yearField, this);
             }
+            this.toField.addValidator(toDateInYearValidator);
         } else {
             this.yearField.removeAllValidators();
+            if (null != fromDateInYearValidator) {
+                fromField.removeValidator(fromDateInYearValidator);
+                fromDateInYearValidator = null;
+            }
+            if (null != toDateInYearValidator) {
+                toField.removeValidator(toDateInYearValidator);
+                toDateInYearValidator = null;
+            }
         }
     }
 
@@ -274,7 +294,7 @@ public class DateRangeField extends CustomField<DateRange> {
         minYearValidator = new IntegerRangeValidator("Year must be later or equal to " + minYear, minYear, null);
         minYearFromDateValidator = new AfterValidator("From date must be in or after " + minYear,
                 DateUtil.firstDayOfYear(minYear), true);
-        minYearToDateValidator = new AfterValidator("From date must be in or after " + minYear,
+        minYearToDateValidator = new AfterValidator("To date must be in or after " + minYear,
                 DateUtil.firstDayOfYear(minYear), true);
         yearField.addValidator(minYearValidator);
         fromField.addValidator(minYearFromDateValidator);
@@ -312,7 +332,7 @@ public class DateRangeField extends CustomField<DateRange> {
         maxYearValidator = new IntegerRangeValidator("Year must be earlier or equal to " + maxYear, null, maxYear);
         maxYearFromDateValidator = new BeforeValidator("From date must be in or before " + maxYear,
                 DateUtil.firstDayOfYear(maxYear), true);
-        maxYearToDateValidator = new BeforeValidator("From date must be in or before " + maxYear,
+        maxYearToDateValidator = new BeforeValidator("To date must be in or before " + maxYear,
                 DateUtil.firstDayOfYear(maxYear), true);
         yearField.addValidator(maxYearValidator);
         fromField.addValidator(maxYearFromDateValidator);
@@ -350,15 +370,4 @@ public class DateRangeField extends CustomField<DateRange> {
     public void setConverter(Class<?> datamodelType) {
         throw new UnsupportedOperationException("The display is hardwired in.");
     }
-
-    @Override
-    protected void setInternalValue(DateRange newValue) {
-        throw new UnsupportedOperationException("The 'internal value' is in the fields.");
-    }
-
-    @Override
-    protected DateRange getInternalValue() {
-        return null;
-    }
-
 }
