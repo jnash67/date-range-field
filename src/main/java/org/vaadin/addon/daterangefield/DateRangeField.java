@@ -11,7 +11,6 @@ import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomField;
 import com.vaadin.ui.Field;
-import com.vaadin.ui.HorizontalLayout;
 import org.vaadin.risto.stepper.DateStepper;
 import org.vaadin.risto.stepper.IntStepper;
 
@@ -58,6 +57,8 @@ public class DateRangeField extends CustomField<DateRange> {
     private BeforeValidator maxYearFromDateValidator, maxYearToDateValidator;
     private AfterValidator minYearFromDateValidator, minYearToDateValidator;
     private InYearValidator fromDateInYearValidator, toDateInYearValidator;
+
+    private ErrorfulHorizontalLayout dateLayout = new ErrorfulHorizontalLayout();
 
     public DateRangeField(Property<Date> fromProperty, Property<Date> toProperty) {
         this(fromProperty, toProperty, true, (Integer) null, true);
@@ -185,7 +186,6 @@ public class DateRangeField extends CustomField<DateRange> {
                 yearChange(true);
             }
         });
-        HorizontalLayout dateLayout = new HorizontalLayout();
         dateLayout.setSpacing(true);
         dateLayout.addComponent(yearField);
         dateLayout.addComponent(fromField);
@@ -196,6 +196,10 @@ public class DateRangeField extends CustomField<DateRange> {
         fromField.setWidth("90px");
         toField.setWidth("90px");
         return dateLayout;
+    }
+
+    public void setErrorStyleName(String styleName) {
+        this.dateLayout.setErrorStyleName(styleName);
     }
 
     private void yearChange(boolean keepDates) {
