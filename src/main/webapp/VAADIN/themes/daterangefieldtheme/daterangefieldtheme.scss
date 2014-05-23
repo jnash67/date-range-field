@@ -1,0 +1,9 @@
+@import "../reindeer/reindeer.scss";
+
+@mixin daterangefieldtheme {
+  @include reindeer;
+
+  .errorstyle {
+    background-color: pink !important;
+  }
+}

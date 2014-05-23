@@ -1,8 +1,12 @@
 .classpath
 .project
 .settings
-target
-.gitignore~
-.DS_Store
-.idea
-out
+.idea/**
+.idea/libraries/
+target/
+out/
+local_db.bin
+src/main/webapp/VAADIN/widgetsets
+src/main/webapp/VAADIN/gwt-unitCache
+*.cache.js
+*.symbolMap

@@ -1,5 +1,6 @@
 package org.vaadin.addon.daterangefield;
 
+import com.vaadin.annotations.Theme;
 import com.vaadin.data.Property;
 import com.vaadin.data.Validator;
 import com.vaadin.data.util.converter.Converter;
@@ -17,6 +18,7 @@ import com.vaadin.ui.VerticalLayout;
 
 import java.util.Locale;
 
+@Theme("daterangefieldtheme")
 public class DateRangeFieldUI extends UI {
 
     DateRangeField drf;
@@ -32,6 +34,7 @@ public class DateRangeFieldUI extends UI {
         DateField df1 = new DateField(null, DateUtil.firstDayOfYear(DateUtil.currentYear()));
         DateField df2 = new DateField(null, DateUtil.lastDayOfYear(DateUtil.currentYear()));
         drf = new DateRangeField(df1, df2, true, (Integer) null, false);
+        drf.setErrorStyleName("errorstyle");
         Button submit = new Button("Submit");
         submit.addClickListener(new Button.ClickListener() {
             @Override
